@@ -5,13 +5,14 @@
 int main()
 {
     char *line;
+    char **args;
 
     while (0x69)
     {
         line = readline("drugs$ ");
         if (!line)
             break;
-        printf("%s\n", line);
+        args = tokinize(line);
         free(line);
     }
     return 0;

@@ -15,7 +15,7 @@ int count_word(char *line)
     if (!line)
         return (0);
     count = 0;
-    while (!ft_strchr("|><&", line[count]) && line[count] && !ft_isspace(line[count]))
+    while (!ft_strchr("|><&()", line[count]) && line[count] && !ft_isspace(line[count]))
         count++;
     return (count);
 }
@@ -36,12 +36,12 @@ char **tokinize(char *line)
     {
         while (ft_isspace(line[i]))
             i++;
-        if (ft_strchr("|>&<", line[i]))
+        if (ft_strchr("|>&<()", line[i]))
         {
             tokens[j] = malloc(3 * sizeof(char));
             if (!tokens[j])
                 return (write(2, "malloc on drugs\n", 17), NULL);
-            if (line[i] == line[i + 1] && line[i] != '&')
+            if (line[i] == line[i + 1] && line[i] != '(' && line[i] != ')')
             {
                 tokens[j][0] = line[i];
                 tokens[j][1] = line[i];
@@ -71,14 +71,4 @@ char **tokinize(char *line)
     }
     tokens[j] = NULL;
     return tokens;
-}
-int main()
-{
-    char **test;
-
-    test = tokinize("<file cat||wc -e>>out");
-    int i = 0;
-    while (i < 8) {
-        printf("%s\n", test[i++]);
-    }
 }
