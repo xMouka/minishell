@@ -50,6 +50,11 @@ typedef struct s_ast_node {
 	t_redirection   *redirections;    // List of input/output redirections
 } t_ast_node;
 
+typedef struct s_op_node {
+	t_ast_node *node;
+	struct s_op_node *next;
+} t_op_node;
+
 typedef struct s_tokens {
 	t_token_type type;
 	char *cmd;
@@ -66,6 +71,7 @@ typedef struct s_stack
 char **tokinize(char *line);
 t_tokens *tokens_list(char **args);
 void open_heredocs(t_tokens *tokens);
-
+t_stack *shuntin_yard(t_tokens *tokens);
+t_ast_node *make_tree(t_stack *stack);
 
 #endif

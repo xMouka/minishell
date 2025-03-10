@@ -1,12 +1,13 @@
 #include "../minishell.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 
 static int ft_is_cmd(char *arg)
 {
-    if (!ft_strcmp(arg, "||") || !ft_strcmp(arg, "&&") || ft_strcmp(arg, "|") 
+    if (!ft_strcmp(arg, "||") || !ft_strcmp(arg, "&&") || !ft_strcmp(arg, "|") 
     || !ft_strcmp(arg, "<<") || !ft_strcmp(arg, ">>") || !ft_strcmp(arg, "<") 
-    || !ft_strcmp(arg, ">") ) {
+    || !ft_strcmp(arg, ">") || !ft_strcmp(arg, "(") || !ft_strcmp(arg, ")")) {
         return (0);
     }
     return (1);
@@ -52,61 +53,137 @@ static void put_redir(t_tokens *token, char *file, t_token_type type)
 
 t_tokens *tokens_list(char **args)
 {
-    t_tokens *node;
-    t_tokens *head;
-    int i;
-    char *temp;
-    char *cmd;
+    t_tokens *head = NULL;
+    t_tokens *current = NULL;
+    t_tokens *new_node = NULL;
+    char *cmd_str = NULL;
+    int i = 0;
     
-
     if (!args)
         return (NULL);
-    // << >> < > | || && cmd
-    i = 0;
-    while(args[i])
+        
+    while (args[i])
     {
-        cmd = "";
-        while  (ft_is_cmd(args[i]) || ft_strcmp(args[i], "<") || ft_strcmp(args[i], ">")
-            || ft_strcmp(args[i], "<<") || ft_strcmp(args[i], ">>"))
+        // Handle redirections at beginning or after special tokens
+        if (args[i] && (!ft_strcmp(args[i], "<") || !ft_strcmp(args[i], ">") ||
+               !ft_strcmp(args[i], "<<") || !ft_strcmp(args[i], ">>")))
         {
-            node = ft_new_node(cmd, 0);
-            while (ft_is_cmd(args[i]))
+            // Create an empty command node if needed
+            if (!new_node)
+                new_node = ft_new_node(ft_strdup(""), TOKEN_COMMAND);
+            // Process redirections
+            if (!ft_strcmp(args[i], "<"))
             {
-                temp = ft_strdup(args[i]);
-                cmd = ft_strjoin(temp, " ");
+                if (args[i+1])
+                    put_redir(new_node, args[i+1], TOKEN_REDIR_IN);
+            }
+            else if (!ft_strcmp(args[i], ">"))
+            {
+                if (args[i+1])
+                    put_redir(new_node, args[i+1], TOKEN_REDIR_OUT);
+            }
+            else if (!ft_strcmp(args[i], "<<"))
+            {
+                if (args[i+1])
+                    put_redir(new_node, args[i+1], TOKEN_HEREDOC);
+            }
+            else if (!ft_strcmp(args[i], ">>"))
+            {
+                if (args[i+1])
+                    put_redir(new_node, args[i+1], TOKEN_APPEND);
+            }
+            
+            i += 2; // Skip redirection token and its argument
+        }
+        // Handle regular commands
+        else if (args[i] && ft_is_cmd(args[i]))
+        {
+            // Build command string
+            if (!new_node)
+            {
+                cmd_str = ft_strdup("");
+                new_node = ft_new_node(cmd_str, TOKEN_COMMAND);
+            }
+            
+            while (args[i] && ft_is_cmd(args[i]))
+            {
+                char *temp = new_node->cmd;
+                if (ft_strlen(new_node->cmd) > 0)
+                    new_node->cmd = ft_strjoin(temp, " ");
+                else
+                    new_node->cmd = ft_strdup("");
+                free(temp);
+                temp = new_node->cmd;
+                new_node->cmd = ft_strjoin(temp, args[i]);
                 free(temp);
                 i++;
             }
-            if (ft_strcmp(args[i], "<"))
-                put_redir(node, args[i + 1], TOKEN_REDIR_IN);
-            else if (ft_strcmp(args[i], ">"))
-                put_redir(node, args[i + 1], TOKEN_REDIR_OUT);
-            else if (ft_strcmp(args[i], "<<"))
-                put_redir(node, args[i + 1], TOKEN_HEREDOC);
-            else if (ft_strcmp(args[i], ">>"))
-                put_redir(node, args[i + 1], TOKEN_APPEND);
-            i += 2;
         }
-        if (ft_strcmp(args[i], "|"))
-            node = ft_new_node(args[i], TOKEN_PIPE);
-        else if (ft_strcmp(args[i], "||"))
-            node = ft_new_node(args[i], TOKEN_OR);
-        else if (ft_strcmp(args[i], "&&"))
-            node = ft_new_node(args[i], TOKEN_AND);
-        else if (ft_strcmp(args[i], "("))
-            node = ft_new_node(args[i], TOKEN_PAREN_OPEN);
-        else if (ft_strcmp(args[i], ")"))
-            node = ft_new_node(args[i], TOKEN_PAREN_CLOSE);
-        if (i == 0)
-            head = node;
-        else if (ft_strcmp(args[i], "|") || ft_strcmp(args[i], "||") 
-                || ft_strcmp(args[i], "&&") || ft_strcmp(args[i], "(")
-                || ft_strcmp(args[i], ")"))
+        // Handle special tokens (|, ||, &&, (, ))
+        else if (args[i])
         {
-            head->next = node;
-            head = head->next;
+            // Add the current command node to our list if it exists
+            if (new_node)
+            {
+                if (!head)
+                {
+                    head = new_node;
+                    current = head;
+                }
+                else
+                {
+                    current->next = new_node;
+                    current = current->next;
+                }
+                new_node = NULL;
+            }
+            // Create node for special token
+            if (!ft_strcmp(args[i], "|"))
+                new_node = ft_new_node(ft_strdup(args[i]), TOKEN_PIPE);
+            else if (!ft_strcmp(args[i], "||"))
+                new_node = ft_new_node(ft_strdup(args[i]), TOKEN_OR);
+            else if (!ft_strcmp(args[i], "&&"))
+                new_node = ft_new_node(ft_strdup(args[i]), TOKEN_AND);
+            else if (!ft_strcmp(args[i], "("))
+                new_node = ft_new_node(ft_strdup(args[i]), TOKEN_PAREN_OPEN);
+            else if (!ft_strcmp(args[i], ")"))
+                new_node = ft_new_node(ft_strdup(args[i]), TOKEN_PAREN_CLOSE);
+            // Add special token to list
+            if (new_node)
+            {
+                if (!head)
+                {
+                    head = new_node;
+                    current = head;
+                }
+                else
+                {
+                    current->next = new_node;
+                    current = current->next;
+                }
+                new_node = NULL;
+            }
+            
+            i++; // Move to next token
         }
-        i++;
+        else
+            i++; // Skip unrecognized tokens
+        
+        // If we've processed all args and still have a pending node
+        if (!args[i] && new_node)
+        {
+            if (!head)
+            {
+                head = new_node;
+                current = head;
+            }
+            else
+            {
+                current->next = new_node;
+                current = current->next;
+            }
+            new_node = NULL;
+        }
     }
-    return (head);
+    return head;
 }
