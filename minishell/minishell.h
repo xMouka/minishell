@@ -50,10 +50,6 @@ typedef struct s_ast_node {
 	t_redirection   *redirections;    // List of input/output redirections
 } t_ast_node;
 
-typedef struct s_op_node {
-	t_ast_node *node;
-	struct s_op_node *next;
-} t_op_node;
 
 typedef struct s_tokens {
 	t_token_type type;
@@ -67,6 +63,12 @@ typedef struct s_stack
 	t_tokens *token;
 	struct s_stack *next;
 }	t_stack;
+
+typedef struct s_node_stack
+{
+    t_ast_node *node;
+    struct s_node_stack *next;
+} t_node_stack;
 
 char **tokinize(char *line);
 t_tokens *tokens_list(char **args);
