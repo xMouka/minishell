@@ -1,7 +1,5 @@
 #include "../minishell.h"
 
-
-
 // Push node to AST node stack
 static void push_node(t_node_stack **stack, t_ast_node *node)
 {
@@ -51,57 +49,53 @@ static t_ast_type token_to_ast_type(t_token_type type)
     return AST_CMD; // Default
 }
 
-// Create a command node from token
-static t_ast_node *create_cmd_node(t_tokens *token)
+// Create node if flag 0 type = cmd if flag = 1 type operation
+static t_ast_node *create_node(t_tokens *token, int flag)
 {
     t_ast_node *node;
     
     node = malloc(sizeof(t_ast_node));
     if (!node)
         return NULL;
-    node->type = AST_CMD;
+    if (!flag)
+    {
+        node->type = AST_CMD;
+        node->args = ft_split(token->cmd, " ");
+        node->redirections = token->redirections;
+    }
+    else
+    {
+        node->type = token_to_ast_type(token->type);
+        node->args = NULL;
+        node->redirections = NULL;
+    }
     node->left = NULL;
     node->right = NULL;
-    node->args = ft_split(token->cmd, " ");
-    node->redirections = token->redirections;
     return node;
 }
 
-// Create an operator node
-static t_ast_node *create_op_node(t_tokens *token)
-{
-    t_ast_node *node;
-    
-    node = malloc(sizeof(t_ast_node));
-    if (!node)
-        return NULL;
-    node->type = token_to_ast_type(token->type);
-    node->left = NULL;
-    node->right = NULL;
-    node->args = NULL;
-    node->redirections = NULL;
-    return node;
-}
 
 // Main function to build the AST
 t_ast_node *make_tree(t_stack *stack)
 {
-    t_node_stack *node_stack = NULL;
+    t_node_stack *node_stack;
     t_ast_node *new_node;
-    t_stack *current = stack;
+    t_stack *current;
     
+    node_stack = NULL;
+    current = stack;
     while (current)
     {
         if (current->token->type == TOKEN_COMMAND)
         {
-            new_node = create_cmd_node(current->token);
+            new_node = create_node(current->token, 0);
             push_node(&node_stack, new_node);
         }
         else if (current->token->type == TOKEN_PIPE || 
                  current->token->type == TOKEN_AND || 
                  current->token->type == TOKEN_OR)
         {
-            new_node = create_op_node(current->token);
+            new_node = create_node(current->token, 1);
             new_node->right = pop_node(&node_stack);
             new_node->left = pop_node(&node_stack);
             push_node(&node_stack, new_node);

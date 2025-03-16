@@ -8,6 +8,34 @@ int ft_isspace(char c)
         return (1);
     return (0);
 }
+int count_tokens(char *line)
+{
+    int count;
+    int i;
+
+    if (!line)
+        return (0);
+    count = 0;
+    i = 0;
+    while (line[i])
+    {
+        while (ft_isspace(line[i]))
+            i++;
+        if (ft_strchr("|>&<()", line[i]))
+        {
+            i++;
+            count++;
+        }
+        else
+        {
+            while (!ft_strchr("|>&<()", line[i]) && line[i] && !ft_isspace(line[i]))
+                i++;
+            count++;
+        }
+    }
+    return (count);
+}
+
 int count_word(char *line)
 {
     int count;
@@ -27,7 +55,7 @@ char **tokinize(char *line)
     int j;
     int z;
     
-    tokens = malloc(100 * sizeof(char *));
+    tokens = malloc((count_tokens(line) + 1)* sizeof(char *));
     if (!tokens)
         return (write(2, "malloc on drugs\n", 17), NULL);
     i = 0;

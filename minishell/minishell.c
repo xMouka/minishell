@@ -21,9 +21,30 @@ void print_ast(t_ast_node *node, int depth)
     
     // Print children
     if (node->left)
+    {
         print_ast(node->left, depth + 1);
+
+        for (i = 0; node->left->args[i]; i++)
+        {
+            for (int j = 0; j < depth + 1; j++)
+                printf("  ");
+            printf("ARG: %s\n", node->left->args[i]);
+        }
+    }
     if (node->right)
         print_ast(node->right, depth + 1);
+}
+void free_args(char **args)
+{
+    int i;
+
+    i = 0;
+    while (args[i])
+    {
+        free(args[i]);
+        i++;
+    }
+    free(args);
 }
 
 int main()
@@ -40,6 +61,11 @@ int main()
         if (!line)
             break;
         args = tokinize(line);
+        if (syntax_error(args))
+        {
+            (free_args(args), free(line));
+            continue;
+        }
         tokens = tokens_list(args);
         stack = shuntin_yard(tokens);
         ast = make_tree(stack);

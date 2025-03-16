@@ -75,5 +75,6 @@ t_tokens *tokens_list(char **args);
 void open_heredocs(t_tokens *tokens);
 t_stack *shuntin_yard(t_tokens *tokens);
 t_ast_node *make_tree(t_stack *stack);
+int syntax_error(char **args);
 
 #endif
