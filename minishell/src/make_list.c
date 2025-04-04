@@ -5,9 +5,10 @@
 
 static int ft_is_cmd(char *arg)
 {
-    if (!ft_strcmp(arg, "||") || !ft_strcmp(arg, "&&") || !ft_strcmp(arg, "|") 
+    if ((!ft_strcmp(arg, "||") || !ft_strcmp(arg, "&&") || !ft_strcmp(arg, "|") 
     || !ft_strcmp(arg, "<<") || !ft_strcmp(arg, ">>") || !ft_strcmp(arg, "<") 
-    || !ft_strcmp(arg, ">") || !ft_strcmp(arg, "(") || !ft_strcmp(arg, ")")) {
+    || !ft_strcmp(arg, ">") || !ft_strcmp(arg, "(") || !ft_strcmp(arg, ")"))
+    && arg[0] != '\'' && arg[0] != '\"') {
         return (0);
     }
     return (1);
@@ -35,7 +36,7 @@ static void put_redir(t_tokens *token, char *file, t_token_type type)
     redir = malloc(sizeof(t_redirection));
     if (!redir)
         return ;
-    redir->file = file;
+    redir->file = ft_strdup(file);
     redir->type = type;
     redir->next = NULL;
     if (!token->redirections)
@@ -105,20 +106,31 @@ static int build_cmd_str(char **args, t_tokens **new_node)
     }
     return (i);
 }
+static void add_node_to_list(t_tokens **head, t_tokens **current, t_tokens **new_node)
+{
+    if (!*new_node)
+        return;
+        
+    if (!*head)
+    {
+        *head = *new_node;
+        *current = *head;
+    }
+    else
+    {
+        (*current)->next = *new_node;
+        *current = (*current)->next;
+    }
+    *new_node = NULL;
+}
 
 static void create_special_tok_node(char **args, t_tokens **current, t_tokens **new_node, t_tokens **head)
 {
     int i;
 
     i = 0;
-    if (*new_node)
-    {
-        if (!*head)
-            (*head = *new_node,*current = *head);
-        else
-            ((*current)->next = *new_node,*current = (*current)->next);
-        *new_node = NULL;
-    }
+    
+    add_node_to_list(head, current, new_node);
     // Create node for special token
     if (!ft_strcmp(args[i], "|"))
         *new_node = ft_new_node(ft_strdup(args[i]), TOKEN_PIPE);
@@ -131,14 +143,8 @@ static void create_special_tok_node(char **args, t_tokens **current, t_tokens **
     else if (!ft_strcmp(args[i], ")"))
         *new_node = ft_new_node(ft_strdup(args[i]), TOKEN_PAREN_CLOSE);
     // Add special token to list
-    if (*new_node)
-    {
-        if (!*head)
-            (*head = *new_node,*current = *head);
-        else
-            ((*current)->next = *new_node,*current = (*current)->next);
-        *new_node = NULL;
-    }
+    add_node_to_list(head, current, new_node);
+
 }
 // tokens to linked list to detect format
 // join command seprated by space in the same node
@@ -172,7 +178,7 @@ t_tokens *tokens_list(char **args)
             i += 2; // Skip redirection token and its argument
         }
         // Handle regular commands
-        else if (args[i] && ft_is_cmd(args[i]))
+        else if (args[i] && (ft_is_cmd(args[i]) || args[i][0] == '\'' || args[i][0] == '\"'))
             i += build_cmd_str(&args[i], &new_node);
         // Handle special tokens (|, ||, &&, (, ))
         else if (args[i])
@@ -180,14 +186,7 @@ t_tokens *tokens_list(char **args)
         else
             i++; // Skip unrecognized tokens
         // If we've processed all args and still have a pending node
-        if (!args[i] && new_node)
-        {
-            if (!head)
-                (head = new_node,current = head);
-            else
-                (current->next = new_node,current = current->next);
-            new_node = NULL;
-        }
+        add_node_to_list(&head, &current, &new_node);
     }
     return head;
 }

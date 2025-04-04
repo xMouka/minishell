@@ -41,14 +41,6 @@ typedef enum e_token_type {
 
 
 
-typedef struct s_ast_node {
-	t_ast_type      type;
-	struct s_ast_node *left;
-	struct s_ast_node *right;
-	// For AST_CMD:
-	char            **args;           // Command arguments (e.g., ["ls", "-la"])
-	t_redirection   *redirections;    // List of input/output redirections
-} t_ast_node;
 
 
 typedef struct s_tokens {
@@ -64,6 +56,17 @@ typedef struct s_stack
 	struct s_stack *next;
 }	t_stack;
 
+typedef struct s_ast_node {
+	t_ast_type      type;
+	struct s_ast_node *left;
+	struct s_ast_node *right;
+	// For AST_CMD:
+	char            **args;           // Command arguments (e.g., ["ls", "-la"])
+	char			**env;
+	t_stack			*next;
+	int				is_wait;
+	t_redirection   *redirections;    // List of input/output redirections
+} t_ast_node;
 typedef struct s_node_stack
 {
     t_ast_node *node;

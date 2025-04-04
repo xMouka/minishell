@@ -61,11 +61,11 @@ int main()
         if (!line)
             break;
         args = tokinize(line);
-        if (syntax_error(args))
-        {
-            (free_args(args), free(line));
-            continue;
-        }
+        // if (syntax_error(args))
+        // {
+        //     (free_args(args), free(line));
+        //     continue;
+        // }
         tokens = tokens_list(args);
         stack = shuntin_yard(tokens);
         ast = make_tree(stack);

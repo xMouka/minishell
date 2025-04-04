@@ -11,6 +11,7 @@ int ft_isspace(char c)
 int count_tokens(char *line)
 {
     int count;
+    char quote;
     int i;
 
     if (!line)
@@ -19,11 +20,26 @@ int count_tokens(char *line)
     i = 0;
     while (line[i])
     {
-        while (ft_isspace(line[i]))
+        while (line[i] && ft_isspace(line[i]))
             i++;
-        if (ft_strchr("|>&<()", line[i]))
+        if (!line[i])
+            break;
+        if (ft_strchr("|>&<()\'\"", line[i]))
         {
-            i++;
+            if (line[i] == '\'' || line[i] == '\"')
+            {
+                quote = line[i];
+                i++;
+                while (line[i] && line[i] != quote)
+                    i++;
+                if (line[i])
+                    i++;
+            }
+            else if (line[i] == line[i + 1] &&( line[i] == '>' || line[i] == '<'
+                    || line[i] == '|' || line[i] == '&'))
+                i += 2;
+            else
+                i++;
             count++;
         }
         else
@@ -47,9 +63,24 @@ int count_word(char *line)
         count++;
     return (count);
 }
+
+void free_tokens(char **tokens, int count)
+{
+    int i;
+
+    if (!tokens)
+        return;
+    for (i = 0; i < count; i++)
+    {
+        if (tokens[i])
+            free(tokens[i]);
+    }
+    free(tokens);
+}
 char **tokinize(char *line)
 {
     char **tokens;
+    char quote;
     int word_len;
     int i;
     int j;
@@ -64,13 +95,51 @@ char **tokinize(char *line)
     {
         while (ft_isspace(line[i]))
             i++;
-        if (ft_strchr("|>&<()", line[i]))
+        if (ft_strchr("\'\"", line[i]))
         {
-            tokens[j] = malloc(3 * sizeof(char));
+            word_len = 0;
+            quote = line[i];
+            i++;
+            while (line[i] && line[i] != quote)
+            {
+                i++;
+                word_len++;
+            }
+            if (!line[i])
+            {
+                free_tokens(tokens, j);
+                return (write(2, "Error: Unterminated quote\n", 26), NULL);
+            }
+            tokens[j] = malloc((word_len + 3) * sizeof(char));
             if (!tokens[j])
+            {
+                free_tokens(tokens, j);
                 return (write(2, "malloc on drugs\n", 17), NULL);
+            }
+            tokens[j][0] = quote;
+            z = 1;
+            i -= word_len;
+            while (z <= word_len)
+            {
+                tokens[j][z] = line[i];
+                z++;
+                i++;
+            }
+            tokens[j][z++] = quote;
+            tokens[j][z] = '\0';
+            j++;
+            i++;
+        }
+        else if (ft_strchr("|>&<()", line[i]))
+        {
             if (line[i] == line[i + 1] && line[i] != '(' && line[i] != ')')
             {
+                tokens[j] = malloc(3 * sizeof(char));
+                if (!tokens[j])
+                {
+                    free_tokens(tokens, j);
+                    return (write(2, "malloc on drugs\n", 17), NULL);
+                }
                 tokens[j][0] = line[i];
                 tokens[j][1] = line[i];
                 tokens[j][2] = '\0';
@@ -78,6 +147,12 @@ char **tokinize(char *line)
             }
             else
             {
+                tokens[j] = malloc(2 * sizeof(char));
+                if (!tokens[j])
+                {
+                    free_tokens(tokens, j);
+                    return (write(2, "malloc on drugs\n", 17), NULL);
+                }
                 tokens[j][0] = line[i];
                 tokens[j][1] = '\0';
                 i++;
@@ -89,7 +164,7 @@ char **tokinize(char *line)
             word_len = count_word(&line[i]);
             tokens[j] = malloc((word_len + 1) * sizeof(char));
             if (!tokens[j])
-                return (write(2, "malloc on drugs\n", 17), NULL);
+                return (free_tokens(tokens, j), write(2, "malloc on drugs\n", 17), NULL);
             z = 0;
             while (z < word_len)
                 tokens[j][z++] = line[i++];

@@ -1,4 +1,5 @@
 #include "../minishell.h"
+#include <stdio.h>
 
 // Push node to AST node stack
 static void push_node(t_node_stack **stack, t_ast_node *node)
@@ -50,7 +51,7 @@ static t_ast_type token_to_ast_type(t_token_type type)
 }
 
 // Create node if flag 0 type = cmd if flag = 1 type operation
-static t_ast_node *create_node(t_tokens *token, int flag)
+static t_ast_node *create_node(t_stack *stack, int flag)
 {
     t_ast_node *node;
     
@@ -60,15 +61,16 @@ static t_ast_node *create_node(t_tokens *token, int flag)
     if (!flag)
     {
         node->type = AST_CMD;
-        node->args = ft_split(token->cmd, " ");
-        node->redirections = token->redirections;
+        node->args = ft_split(stack->token->cmd, " ");
+        node->redirections = stack->token->redirections;
     }
     else
     {
-        node->type = token_to_ast_type(token->type);
+        node->type = token_to_ast_type(stack->token->type);
         node->args = NULL;
         node->redirections = NULL;
     }
+    node->is_wait = 0;
     node->left = NULL;
     node->right = NULL;
     return node;
@@ -88,14 +90,14 @@ t_ast_node *make_tree(t_stack *stack)
     {
         if (current->token->type == TOKEN_COMMAND)
         {
-            new_node = create_node(current->token, 0);
+            new_node = create_node(current, 0);
             push_node(&node_stack, new_node);
         }
         else if (current->token->type == TOKEN_PIPE || 
                  current->token->type == TOKEN_AND || 
                  current->token->type == TOKEN_OR)
         {
-            new_node = create_node(current->token, 1);
+            new_node = create_node(current, 1);
             new_node->right = pop_node(&node_stack);
             new_node->left = pop_node(&node_stack);
             push_node(&node_stack, new_node);
